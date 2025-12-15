@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Projects - Muhammad Ahmad Amir{% endblock %}
+
+{% block content %}
+<main>
+    <section class="projects-hero">
+        <div class="container">
+            <h1>My Projects</h1>
+            <p>Here are some of my recent work and side projects</p>
+        </div>
+    </section>
+
+    <section class="projects" id="projects">
+        <div class="container">
+            <div class="projects-grid">
+                {% for project in projects %}
+                <div class="project-card">
+                    <div class="project-header">
+                        <h3>{{ project.title }}</h3>
+                    </div>
+                    <p class="project-description">{{ project.description }}</p>
+                    <div class="project-technologies">
+                        {% for tech in project.technologies %}
+                        <span class="tech-badge">{{ tech }}</span>
+                        {% endfor %}
+                    </div>
+                    <a href="{{ project.link }}" class="project-link">View Project →</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}
