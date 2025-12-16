@@ -22,15 +22,13 @@ resource "aws_iam_role" "ec2_role" {
 
 # IAM Instance Profile
 resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "portfolio-ec2-profile"
+  name = "portfolio-ec2-profile-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
   role = aws_iam_role.ec2_role.name
 }
 
 # Policy for S3 access (for logs, backups, etc.)
 resource "aws_iam_role_policy" "ec2_policy" {
-  name = "portfolio-ec2-policy"
-  role = aws_iam_role.ec2_role.id
-
+  name = "portfolio-ec2-policy-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
