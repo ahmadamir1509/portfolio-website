@@ -1,36 +1,33 @@
 #!/bin/bash
 
-echo "=== Portfolio Flask Website EC2 Setup ===" | tee /tmp/setup.log
+echo "=== Portfolio Flask Website EC2 Setup ===" > /tmp/setup.log 2>&1
 
-# Update system
-yum update -y 2>&1 | tee -a /tmp/setup.log
-
-# Install Python and pip
-yum install -y python3 python3-pip git 2>&1 | tee -a /tmp/setup.log
+# Install Python and pip (minimal updates only)
+yum install -y python3 python3-pip git >> /tmp/setup.log 2>&1
 
 # Create app directory
 mkdir -p /home/ec2-user/portfolio
 cd /home/ec2-user/portfolio
 
 # Clone the latest code
-echo "Cloning repository..." | tee -a /tmp/setup.log
-git clone https://github.com/ahmadamir1509/portfolio-website.git . 2>&1 | tee -a /tmp/setup.log || git pull 2>&1 | tee -a /tmp/setup.log
+echo "Cloning repository..." >> /tmp/setup.log 2>&1
+git clone https://github.com/ahmadamir1509/portfolio-website.git . >> /tmp/setup.log 2>&1
 
 # Install Python dependencies
-echo "Installing dependencies..." | tee -a /tmp/setup.log
-pip3 install -r requirements.txt 2>&1 | tee -a /tmp/setup.log
+echo "Installing dependencies..." >> /tmp/setup.log 2>&1
+pip3 install Flask==2.3.3 >> /tmp/setup.log 2>&1
 
-# Change ownership
-chown -R ec2-user:ec2-user /home/ec2-user/portfolio
+# Fix permissions
+chown -R ec2-user:ec2-user /home/ec2-user/portfolio >> /tmp/setup.log 2>&1
+chmod -R 755 /home/ec2-user/portfolio >> /tmp/setup.log 2>&1
 
-# Start Flask in background with proper logging
-echo "Starting Flask..." | tee -a /tmp/setup.log
-cd /home/ec2-user/portfolio
-su - ec2-user -c "cd /home/ec2-user/portfolio && nohup python3 app.py > /tmp/flask.log 2>&1 &" 2>&1 | tee -a /tmp/setup.log
+# Start Flask
+echo "Starting Flask..." >> /tmp/setup.log 2>&1
+su - ec2-user -c "cd /home/ec2-user/portfolio && nohup python3 app.py > /tmp/flask.log 2>&1 &" >> /tmp/setup.log 2>&1
 
-echo "=== Setup complete ===" | tee -a /tmp/setup.log
-sleep 5
-ps aux | grep app.py | grep -v grep | tee -a /tmp/setup.log
+sleep 3
+echo "=== Setup complete ===" >> /tmp/setup.log 2>&1
+ps aux | grep app.py | grep -v grep >> /tmp/setup.log 2>&1
 
 
     cp -r /tmp/website/* /var/www/html/ 2>/dev/null || true
