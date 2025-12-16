@@ -41,42 +41,13 @@ jobs:
     needs: terraform-validate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
-    permissions:
-      id-token: write
-      contents: read
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-      
-      - name: Terraform Init
-        run: cd terraform && terraform init -backend=false
-      
-      - name: Terraform Apply
-        run: cd terraform && terraform apply -auto-approve -var="aws_region=$AWS_REGION"
-      
-      - name: Get EC2 Instance IP
-        id: get-ip
-        run: |
-          cd terraform
-          INSTANCE_IP=$(terraform output -raw instance_public_ip 2>/dev/null || echo "")
-          echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
-      
       - name: Deploy Flask app to EC2
-        if: steps.get-ip.outputs.instance_ip != ''
         env:
-          INSTANCE_IP: ${{ steps.get-ip.outputs.instance_ip }}
+          INSTANCE_IP: 98.86.163.16
           SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
@@ -87,23 +58,18 @@ jobs:
           ssh-keyscan -H $INSTANCE_IP >> ~/.ssh/known_hosts 2>/dev/null || true
           
           # Wait for EC2 to boot
-          sleep 30
+          sleep 15
           
-          # Deploy repository to EC2
+          # Pull latest code and install dependencies
           ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP 'cd /home/ec2-user/portfolio && git pull origin main 2>/dev/null || true && pip3 install -r requirements.txt 2>/dev/null || true' || true
+            ec2-user@$INSTANCE_IP 'cd /home/ec2-user/portfolio && git pull origin main && pip3 install -r requirements.txt' || true
           
-          # Restart Flask service
+          # Restart Flask app
           ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP 'sudo systemctl restart portfolio 2>/dev/null || true' || true
+            ec2-user@$INSTANCE_IP 'pkill -f "python3 app.py" 2>/dev/null || true && sleep 2 && nohup python3 /home/ec2-user/portfolio/app.py > /tmp/flask.log 2>&1 &' || true
       
       - name: Print Website URL
         run: |
-          INSTANCE_IP="${{ steps.get-ip.outputs.instance_ip }}"
-          if [ -n "$INSTANCE_IP" ]; then
-            echo "✅ Flask app deployed successfully!"
-            echo "🌐 Website URL: http://$INSTANCE_IP:5000"
-          else
-            echo "⚠️ Could not get instance IP"
-          fi
+          echo "✅ Flask app deployed successfully!"
+          echo "🌐 Website URL: http://98.86.163.16:5000"
 
