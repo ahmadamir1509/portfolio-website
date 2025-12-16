@@ -7,7 +7,9 @@ resource "aws_instance" "web" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = aws_key_pair.deployer.key_name
 
-  user_data = base64encode(file("${path.module}/user_data.sh"))
+  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+    aws_region = var.aws_region
+  }))
 
   tags = {
     Name = "portfolio-website"
@@ -19,28 +21,18 @@ resource "aws_instance" "web" {
   ]
 }
 
-# Key Pair for SSH
-resource "aws_key_pair" "deployer" {
-  key_name   = "portfolio-deployer-key"
-  public_key = var.public_key_path != "" ? file(var.public_key_path) : tls_private_key.deployer[0].public_key_openssh
-
-  tags = {
-    Name = "portfolio-deployer-key"
-  }
-}
-
-# Generate private key if not provided
+# Generate SSH private key
 resource "tls_private_key" "deployer" {
-  count     = var.public_key_path == "" ? 1 : 0
   algorithm = "RSA"
   rsa_bits  = 4096
 }
 
-# Save private key locally
-resource "local_file" "private_key" {
-  count             = var.public_key_path == "" ? 1 : 0
-  content           = tls_private_key.deployer[0].private_key_pem
-  filename          = "${path.module}/../portfolio-deployer-key.pem"
-  file_permission   = "0600"
-  sensitive_content = true
+# Create AWS Key Pair from generated public key
+resource "aws_key_pair" "deployer" {
+  key_name   = "portfolio-deployer-key"
+  public_key = tls_private_key.deployer.public_key_openssh
+
+  tags = {
+    Name = "portfolio-deployer-key"
+  }
 }

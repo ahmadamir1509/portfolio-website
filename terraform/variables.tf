@@ -10,12 +10,6 @@ variable "instance_type" {
   description = "EC2 instance type (t2.micro is free tier eligible)"
 }
 
-variable "public_key_path" {
-  type        = string
-  default     = ""
-  description = "Path to public SSH key (leave empty to generate)"
-}
-
 variable "environment" {
   type        = string
   default     = "production"

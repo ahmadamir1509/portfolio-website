@@ -13,8 +13,8 @@ output "website_url" {
   description = "URL to access the portfolio website"
 }
 
-output "ssh_key_path" {
-  value       = var.public_key_path == "" ? local_file.private_key[0].filename : "Use your own key"
-  description = "Path to SSH private key (if generated)"
+output "ssh_private_key" {
+  value       = tls_private_key.deployer.private_key_pem
+  description = "SSH private key for EC2 access"
   sensitive   = true
 }

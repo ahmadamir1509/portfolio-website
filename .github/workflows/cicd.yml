@@ -66,17 +66,21 @@ jobs:
       - name: Terraform Apply
         run: cd terraform && terraform apply -auto-approve -var="aws_region=$AWS_REGION"
       
-      - name: Get EC2 Instance IP
+      - name: Get EC2 Instance IP and SSH Key
         id: get-ip
         run: |
           cd terraform
           INSTANCE_IP=$(terraform output -raw instance_public_ip)
+          SSH_KEY=$(terraform output -raw ssh_private_key)
           echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+          echo "ssh_key<<EOF" >> $GITHUB_OUTPUT
+          echo "$SSH_KEY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       
       - name: Deploy files to EC2
         env:
           INSTANCE_IP: ${{ steps.get-ip.outputs.instance_ip }}
-          SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          SSH_KEY: ${{ steps.get-ip.outputs.ssh_key }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/ec2-key.pem
@@ -85,20 +89,19 @@ jobs:
           # Add EC2 to known hosts
           ssh-keyscan -H $INSTANCE_IP >> ~/.ssh/known_hosts 2>/dev/null || true
           
+          # Wait for EC2 to fully boot (30 seconds)
+          sleep 30
+          
           # Create remote directory
-          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
             ec2-user@$INSTANCE_IP 'mkdir -p /tmp/website' || true
           
           # Copy files to EC2
           scp -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -r \
             index.html error.html static/ ec2-user@$INSTANCE_IP:/tmp/website/ || true
           
-          # Copy deployment script
-          scp -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no \
-            terraform/deploy.sh ec2-user@$INSTANCE_IP:/tmp/ || true
-          
           # Deploy on EC2
-          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
             ec2-user@$INSTANCE_IP 'sudo cp -r /tmp/website/* /var/www/html/ 2>/dev/null; sudo systemctl restart httpd' || true
       
       - name: Print Website URL
