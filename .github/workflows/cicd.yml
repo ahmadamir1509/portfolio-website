@@ -57,16 +57,31 @@ jobs:
           # Add EC2 to known hosts
           ssh-keyscan -H $INSTANCE_IP >> ~/.ssh/known_hosts 2>/dev/null || true
           
-          # Wait for EC2 to boot
-          sleep 15
-          
-          # Pull latest code and install dependencies
+          # Pull latest code
           ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP 'cd /home/ec2-user/portfolio && git pull origin main && pip3 install -r requirements.txt' || true
+            ec2-user@$INSTANCE_IP "cd /home/ec2-user/portfolio && git pull origin main" || exit 1
           
-          # Restart Flask app
+          # Kill old Flask process
           ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP 'pkill -f "python3 app.py" 2>/dev/null || true && sleep 2 && nohup python3 /home/ec2-user/portfolio/app.py > /tmp/flask.log 2>&1 &' || true
+            ec2-user@$INSTANCE_IP "pkill -f 'python3 app.py' || true" || true
+          
+          # Wait for port to be free
+          sleep 3
+          
+          # Install dependencies
+          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
+            ec2-user@$INSTANCE_IP "pip3 install -r /home/ec2-user/portfolio/requirements.txt" || true
+          
+          # Start Flask app
+          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
+            ec2-user@$INSTANCE_IP "cd /home/ec2-user/portfolio && nohup python3 app.py > /tmp/flask.log 2>&1 &" || exit 1
+          
+          # Wait for Flask to start
+          sleep 3
+          
+          # Verify Flask is running
+          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
+            ec2-user@$INSTANCE_IP "ps aux | grep app.py | grep -v grep" || exit 1
       
       - name: Print Website URL
         run: |
