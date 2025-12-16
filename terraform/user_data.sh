@@ -29,7 +29,7 @@ if [ ! -f /var/www/html/index.html ]; then
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio - Setting up...</title>
+    <title>Portfolio - Ahmad Amir</title>
     <style>
         body {
             margin: 0;
@@ -47,37 +47,28 @@ if [ ! -f /var/www/html/index.html ]; then
             border-radius: 10px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
             text-align: center;
+            max-width: 600px;
         }
         h1 { color: #333; margin: 0 0 10px 0; }
-        p { color: #666; }
+        p { color: #666; line-height: 1.6; }
+        .status { color: #667eea; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>✨ Portfolio Website</h1>
-        <p>Your website is being deployed...</p>
-        <p>Check back in a moment!</p>
+        <p>Welcome to my portfolio!</p>
+        <p class="status">Website is LIVE and running on EC2</p>
+        <p>Deployed with Terraform + GitHub Actions + Apache</p>
     </div>
 </body>
 </html>
 EOF
 fi
 
-echo "=== Setup Complete ==="
+echo "=== Apache Setup Complete ==="
 echo "Website directory: /var/www/html/"
-set -e
-
-AWS_REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
-ECR_REPOSITORY_URL="${ecr_repository_url}"
-
-# Login to ECR
-aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPOSITORY_URL
-
-# Pull latest image
-docker pull $ECR_REPOSITORY_URL:latest || echo "Failed to pull image"
-
-# Stop and remove old container if exists
-docker stop portfolio-website 2>/dev/null || true
+echo "Apache is running and ready to serve content"
 docker rm portfolio-website 2>/dev/null || true
 
 # Run new container

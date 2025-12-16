@@ -7,9 +7,7 @@ resource "aws_instance" "web" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = aws_key_pair.deployer.key_name
 
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    aws_region = var.aws_region
-  }))
+  user_data = base64encode(file("${path.module}/user_data.sh"))
 
   tags = {
     Name = "portfolio-website"
