@@ -13,35 +13,19 @@ yum install -y python3 python3-pip git
 mkdir -p /home/ec2-user/portfolio
 cd /home/ec2-user/portfolio
 
-# Clone or pull the latest code
+# Clone the latest code
 git clone https://github.com/ahmadamir1509/portfolio-website.git . 2>/dev/null || git pull
 
 # Install Python dependencies
 pip3 install -r requirements.txt
 
-# Create a systemd service for Flask
-cat > /etc/systemd/system/portfolio.service << 'EOF'
-[Unit]
-Description=Portfolio Flask Application
-After=network.target
+# Start Flask in background
+nohup python3 app.py > /tmp/flask.log 2>&1 &
 
-[Service]
-User=ec2-user
-WorkingDirectory=/home/ec2-user/portfolio
-ExecStart=/usr/bin/python3 /home/ec2-user/portfolio/app.py
-Restart=always
-Environment="FLASK_ENV=production"
+echo "=== Flask app started on port 5000 ==="
+sleep 5
+ps aux | grep app.py | grep -v grep || echo "Warning: Flask may not have started"
 
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Enable and start the service
-systemctl daemon-reload
-systemctl enable portfolio
-systemctl start portfolio
-
-echo "=== Portfolio Flask app is running ==="
     cp -r /tmp/website/* /var/www/html/ 2>/dev/null || true
 fi
 
