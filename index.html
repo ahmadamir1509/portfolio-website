@@ -3,51 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio Website</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <title>Home - Muhammad Ahmad Amir</title>
+    <link rel="stylesheet" href="static/css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">My Portfolio</div>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="#projects" class="nav-link">Projects</a></li>
+                <li><a href="#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <img src="static/images/profile.jpeg" alt="Muhammad Ahmad Amir" class="profile-image">
+                <h1>Hi, I'm Muhammad Ahmad Amir</h1>
+                <p class="subtitle">Full Stack Web Developer | Python Enthusiast</p>
+                <div class="hero-buttons">
+                    <a href="#projects" class="btn btn-primary">View My Work</a>
+                    <a href="#contact" class="btn btn-secondary">Get In Touch</a>
+                </div>
+            </div>
+        </section>
 
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-        }
+        <!-- About Section -->
+        <section class="about" id="about">
+            <div class="container">
+                <h2>About Me</h2>
+                <div class="about-content">
+                    <div class="about-text">
+                        <p>I'm a passionate full-stack web developer from Islamabad, Pakistan with expertise in building modern, responsive web applications. I love solving complex problems and creating user-friendly digital solutions.</p>
+                        <p>With a strong foundation in Python, Flask, and modern web technologies, I'm committed to continuous learning and building projects that make a real impact.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 2.5em;
-        }
+        <!-- Skills Section -->
+        <section class="skills" id="skills">
+            <div class="container">
+                <h2>Skills</h2>
+                <div class="skills-grid">
+                    <div class="skill-category">
+                        <h3>Frontend</h3>
+                        <ul class="skill-list">
+                            <li><span class="skill-tag">HTML5</span></li>
+                            <li><span class="skill-tag">CSS3</span></li>
+                            <li><span class="skill-tag">JavaScript</span></li>
+                            <li><span class="skill-tag">Bootstrap</span></li>
+                        </ul>
+                    </div>
 
-        .subtitle {
-            color: rgba(255, 255, 255, 0.8);
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 1.2em;
-        }
+                    <div class="skill-category">
+                        <h3>Backend</h3>
+                        <ul class="skill-list">
+                            <li><span class="skill-tag">Python</span></li>
+                            <li><span class="skill-tag">Flask</span></li>
+                            <li><span class="skill-tag">Django</span></li>
+                            <li><span class="skill-tag">REST APIs</span></li>
+                        </ul>
+                    </div>
 
-        .section {
-            margin-bottom: 30px;
+                    <div class="skill-category">
+                        <h3>Database</h3>
+                        <ul class="skill-list">
+                            <li><span class="skill-tag">MySQL</span></li>
+                            <li><span class="skill-tag">PostgreSQL</span></li>
+                            <li><span class="skill-tag">SQLite</span></li>
+                            <li><span class="skill-tag">MongoDB</span></li>
+                        </ul>
+                    </div>
+
+                    <div class="skill-category">
+                        <h3>Tools & Version Control</h3>
+                        <ul class="skill-list">
+                            <li><span class="skill-tag">Git</span></li>
+                            <li><span class="skill-tag">GitHub</span></li>
+                            <li><span class="skill-tag">VS Code</span></li>
+                            <li><span class="skill-tag">Linux</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Experience Section -->
+        <section class="experience" id="experience">
+            <div class="container">
+                <h2>Experience</h2>
+                <div class="experience-list">
+                    <div class="experience-item">
+                        <h3>Junior Web Developer</h3>
+                        <p class="company">Tech Solutions Inc. | 2023 - Present</p>
+                        <p>Developed and maintained web applications using Flask and modern JavaScript frameworks. Collaborated with cross-functional teams to deliver high-quality solutions.</p>
+                    </div>
+
+                    <div class="experience-item">
+                        <h3>Freelance Web Developer</h3>
+                        <p class="company">Self-Employed | 2022 - 2023</p>
+                        <p>Created custom web solutions for small businesses and startups. Focused on responsive design and user experience optimization.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section class="contact" id="contact">
+            <div class="container">
+                <h2>Get In Touch</h2>
+                <div class="contact-info">
+                    <p>I'm always interested in hearing about new projects and opportunities.</p>
+                    <div class="contact-links">
+                        <a href="mailto:ahmad@example.com" class="contact-link">📧 Email</a>
+                        <a href="https://github.com" target="_blank" class="contact-link">🐙 GitHub</a>
+                        <a href="https://linkedin.com" target="_blank" class="contact-link">💼 LinkedIn</a>
+                        <a href="https://twitter.com" target="_blank" class="contact-link">🐦 Twitter</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Muhammad Ahmad Amir. All rights reserved.</p>
+    </footer>
+</body>
+</html>
         }
 
         .section h2 {
