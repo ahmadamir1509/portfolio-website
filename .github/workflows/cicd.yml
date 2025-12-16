@@ -47,7 +47,7 @@ jobs:
       
       - name: Deploy Flask app to EC2
         env:
-          INSTANCE_IP: 98.86.163.16
+          INSTANCE_IP: 98.93.75.181
           SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
@@ -71,5 +71,5 @@ jobs:
       - name: Print Website URL
         run: |
           echo "✅ Flask app deployed successfully!"
-          echo "🌐 Website URL: http://98.86.163.16:5000"
+          echo "🌐 Website URL: http://98.93.75.181:5000"
 
