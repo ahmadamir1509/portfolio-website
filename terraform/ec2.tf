@@ -7,6 +7,7 @@ resource "aws_instance" "web" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = aws_key_pair.deployer.key_name
 
+  # Use a timestamp to ensure unique key names
   user_data = base64encode(file("${path.module}/user_data.sh"))
 
   tags = {
@@ -27,7 +28,7 @@ resource "tls_private_key" "deployer" {
 
 # Create AWS Key Pair from generated public key
 resource "aws_key_pair" "deployer" {
-  key_name   = "portfolio-deployer-key"
+  key_name   = "portfolio-deployer-key-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
   public_key = tls_private_key.deployer.public_key_openssh
 
   tags = {

@@ -1,6 +1,6 @@
 # IAM Role for EC2
 resource "aws_iam_role" "ec2_role" {
-  name = "portfolio-ec2-role"
+  name = "portfolio-ec2-role-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
