@@ -1,8 +1,8 @@
 # Security Group for EC2
 resource "aws_security_group" "web" {
-  name        = "portfolio-web-sg"
+  name        = "portfolio-web-sg-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
   description = "Security group for portfolio website EC2"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.default.id
 
   # HTTP
   ingress {
