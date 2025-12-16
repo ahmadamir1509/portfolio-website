@@ -1,60 +1,51 @@
-# S3 Bucket for website hosting
-resource "aws_s3_bucket" "website" {
-  bucket = var.bucket_name
+# VPC for EC2 Instance
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags = {
-    Name = var.bucket_name
+    Name = "portfolio-vpc"
   }
 }
 
-# Block public access settings
-resource "aws_s3_bucket_public_access_block" "website" {
-  bucket = aws_s3_bucket.website.id
+# Internet Gateway
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-# Bucket policy to allow public read access
-resource "aws_s3_bucket_policy" "website" {
-  bucket = aws_s3_bucket.website.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "PublicReadGetObject"
-        Effect = "Allow"
-        Principal = "*"
-        Action   = "s3:GetObject"
-        Resource = "${aws_s3_bucket.website.arn}/*"
-      }
-    ]
-  })
-
-  depends_on = [aws_s3_bucket_public_access_block.website]
-}
-
-# Enable website hosting
-resource "aws_s3_bucket_website_configuration" "website" {
-  bucket = aws_s3_bucket.website.id
-
-  index_document {
-    suffix = var.index_document
-  }
-
-  error_document {
-    key = var.error_document
+  tags = {
+    Name = "portfolio-igw"
   }
 }
 
-# Block all versioning and logging for simplicity
-resource "aws_s3_bucket_versioning" "website" {
-  bucket = aws_s3_bucket.website.id
+# Public Subnet
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[0]
+  map_public_ip_on_launch = true
 
-  versioning_configuration {
-    status = "Disabled"
+  tags = {
+    Name = "portfolio-public-subnet"
   }
+}
+
+# Route Table
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block      = "0.0.0.0/0"
+    gateway_id      = aws_internet_gateway.main.id
+  }
+
+  tags = {
+    Name = "portfolio-route-table"
+  }
+}
+
+# Route Table Association
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
 }

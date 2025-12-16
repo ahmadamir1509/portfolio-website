@@ -1,22 +1,23 @@
 variable "aws_region" {
-  description = "AWS region"
   type        = string
   default     = "us-east-1"
+  description = "AWS region"
 }
 
-variable "bucket_name" {
-  description = "S3 bucket name for website"
+variable "instance_type" {
   type        = string
+  default     = "t2.micro"
+  description = "EC2 instance type (t2.micro is free tier eligible)"
 }
 
-variable "index_document" {
-  description = "Index document"
+variable "public_key_path" {
   type        = string
-  default     = "index.html"
+  default     = ""
+  description = "Path to public SSH key (leave empty to generate)"
 }
 
-variable "error_document" {
-  description = "Error document"
+variable "environment" {
   type        = string
-  default     = "error.html"
+  default     = "production"
+  description = "Environment name"
 }

@@ -1,23 +1,70 @@
 #!/bin/bash
 set -e
 
-# Update system packages
+echo "=== Portfolio Website EC2 Setup ==="
+
+# Update system
 yum update -y
-yum install -y docker git curl
 
-# Start Docker service
-systemctl start docker
-systemctl enable docker
+# Install Apache web server
+yum install -y httpd
 
-# Add ec2-user to docker group
-usermod -aG docker ec2-user
+# Start and enable Apache
+systemctl start httpd
+systemctl enable httpd
 
-# Configure AWS region
-aws configure set region ${aws_region}
+# Create website directory
+mkdir -p /tmp/website
 
-# Create a cron job to pull and run the latest image
-cat > /home/ec2-user/deploy.sh << 'DEPLOY_SCRIPT'
-#!/bin/bash
+# Copy website files when available
+if [ -d "/tmp/website" ]; then
+    cp -r /tmp/website/* /var/www/html/ 2>/dev/null || true
+fi
+
+# Create default index.html if not provided
+if [ ! -f /var/www/html/index.html ]; then
+    cat > /var/www/html/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio - Setting up...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            text-align: center;
+        }
+        h1 { color: #333; margin: 0 0 10px 0; }
+        p { color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Portfolio Website</h1>
+        <p>Your website is being deployed...</p>
+        <p>Check back in a moment!</p>
+    </div>
+</body>
+</html>
+EOF
+fi
+
+echo "=== Setup Complete ==="
+echo "Website directory: /var/www/html/"
 set -e
 
 AWS_REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)

@@ -1,14 +1,20 @@
-output "bucket_name" {
-  description = "S3 bucket name"
-  value       = aws_s3_bucket.website.id
+output "instance_id" {
+  value       = aws_instance.web.id
+  description = "ID of the EC2 instance"
+}
+
+output "instance_public_ip" {
+  value       = aws_instance.web.public_ip
+  description = "Public IP address of the EC2 instance"
 }
 
 output "website_url" {
-  description = "Website URL"
-  value       = aws_s3_bucket_website_configuration.website.website_endpoint
+  value       = "http://${aws_instance.web.public_ip}"
+  description = "URL to access the portfolio website"
 }
 
-output "website_domain" {
-  description = "Website domain"
-  value       = "http://${aws_s3_bucket_website_configuration.website.website_endpoint}"
+output "ssh_key_path" {
+  value       = var.public_key_path == "" ? local_file.private_key[0].filename : "Use your own key"
+  description = "Path to SSH private key (if generated)"
+  sensitive   = true
 }
