@@ -6,8 +6,8 @@ variable "aws_region" {
 
 variable "instance_type" {
   type        = string
-  default     = "t2.micro"
-  description = "EC2 instance type (t2.micro is Free Tier eligible)"
+  default     = "t2.nano"
+  description = "EC2 instance type (t2.nano is Free Tier eligible)"
 }
 
 variable "environment" {
