@@ -1,23 +1,47 @@
 #!/bin/bash
 set -e
 
-echo "=== Portfolio Website EC2 Setup ==="
+echo "=== Portfolio Flask Website EC2 Setup ==="
 
 # Update system
 yum update -y
 
-# Install Apache web server
-yum install -y httpd
+# Install Python and pip
+yum install -y python3 python3-pip git
 
-# Start and enable Apache
-systemctl start httpd
-systemctl enable httpd
+# Create app directory
+mkdir -p /home/ec2-user/portfolio
+cd /home/ec2-user/portfolio
 
-# Create website directory
-mkdir -p /tmp/website
+# Clone or pull the latest code
+git clone https://github.com/ahmadamir1509/portfolio-website.git . 2>/dev/null || git pull
 
-# Copy website files when available
-if [ -d "/tmp/website" ]; then
+# Install Python dependencies
+pip3 install -r requirements.txt
+
+# Create a systemd service for Flask
+cat > /etc/systemd/system/portfolio.service << 'EOF'
+[Unit]
+Description=Portfolio Flask Application
+After=network.target
+
+[Service]
+User=ec2-user
+WorkingDirectory=/home/ec2-user/portfolio
+ExecStart=/usr/bin/python3 /home/ec2-user/portfolio/app.py
+Restart=always
+Environment="FLASK_ENV=production"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start the service
+systemctl daemon-reload
+systemctl enable portfolio
+systemctl start portfolio
+
+echo "=== Portfolio Flask app is running ==="
     cp -r /tmp/website/* /var/www/html/ 2>/dev/null || true
 fi
 
