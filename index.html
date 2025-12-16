@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Website</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .section p {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .tech-list {
+            list-style: none;
+        }
+
+        .tech-list li {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 8px 0;
+            margin-left: 20px;
+        }
+
+        .tech-list li:before {
+            content: "✓ ";
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .link-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .link-btn:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin: 5px 5px 5px 0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .section h2 {
+                font-size: 1.2em;
+            }
+
+            .links {
+                flex-direction: column;
+            }
+
+            .link-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Portfolio Website</h1>
+        <p class="subtitle">Deployed with Terraform & GitHub Actions</p>
+
+        <div class="section">
+            <h2>Welcome!</h2>
+            <p>This is a static website deployed to AWS S3 using Terraform Infrastructure as Code and GitHub Actions CI/CD pipeline.</p>
+        </div>
+
+        <div class="section">
+            <h2>Technologies Used</h2>
+            <ul class="tech-list">
+                <li>Terraform - Infrastructure as Code</li>
+                <li>AWS S3 - Static Website Hosting</li>
+                <li>GitHub Actions - CI/CD Pipeline</li>
+                <li>HTML/CSS - Frontend</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Key Features</h2>
+            <span class="badge">✓ Infrastructure as Code</span>
+            <span class="badge">✓ Automated Deployment</span>
+            <span class="badge">✓ Responsive Design</span>
+            <span class="badge">✓ Fast & Scalable</span>
+        </div>
+
+        <div class="section">
+            <h2>How It Works</h2>
+            <p>Push code to GitHub → GitHub Actions validates Terraform → Deploys to S3 → Website goes live automatically!</p>
+        </div>
+
+        <div class="links">
+            <a href="https://github.com" class="link-btn">GitHub Repository</a>
+            <a href="https://aws.amazon.com/s3/" class="link-btn">AWS S3</a>
+            <a href="https://www.terraform.io/" class="link-btn">Terraform</a>
+        </div>
+    </div>
+</body>
+</html>
