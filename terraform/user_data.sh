@@ -1,30 +1,37 @@
 #!/bin/bash
-set -e
 
-echo "=== Portfolio Flask Website EC2 Setup ==="
+echo "=== Portfolio Flask Website EC2 Setup ===" | tee /tmp/setup.log
 
 # Update system
-yum update -y
+yum update -y 2>&1 | tee -a /tmp/setup.log
 
 # Install Python and pip
-yum install -y python3 python3-pip git
+yum install -y python3 python3-pip git 2>&1 | tee -a /tmp/setup.log
 
 # Create app directory
 mkdir -p /home/ec2-user/portfolio
 cd /home/ec2-user/portfolio
 
 # Clone the latest code
-git clone https://github.com/ahmadamir1509/portfolio-website.git . 2>/dev/null || git pull
+echo "Cloning repository..." | tee -a /tmp/setup.log
+git clone https://github.com/ahmadamir1509/portfolio-website.git . 2>&1 | tee -a /tmp/setup.log || git pull 2>&1 | tee -a /tmp/setup.log
 
 # Install Python dependencies
-pip3 install -r requirements.txt
+echo "Installing dependencies..." | tee -a /tmp/setup.log
+pip3 install -r requirements.txt 2>&1 | tee -a /tmp/setup.log
 
-# Start Flask in background
-nohup python3 app.py > /tmp/flask.log 2>&1 &
+# Change ownership
+chown -R ec2-user:ec2-user /home/ec2-user/portfolio
 
-echo "=== Flask app started on port 5000 ==="
+# Start Flask in background with proper logging
+echo "Starting Flask..." | tee -a /tmp/setup.log
+cd /home/ec2-user/portfolio
+su - ec2-user -c "cd /home/ec2-user/portfolio && nohup python3 app.py > /tmp/flask.log 2>&1 &" 2>&1 | tee -a /tmp/setup.log
+
+echo "=== Setup complete ===" | tee -a /tmp/setup.log
 sleep 5
-ps aux | grep app.py | grep -v grep || echo "Warning: Flask may not have started"
+ps aux | grep app.py | grep -v grep | tee -a /tmp/setup.log
+
 
     cp -r /tmp/website/* /var/www/html/ 2>/dev/null || true
 fi
