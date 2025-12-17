@@ -57,25 +57,48 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
       
+      - name: Get ECR Registry
+        id: registry
+        run: |
+          ACCOUNT_ID="${{ env.AWS_ACCOUNT_ID }}"
+          REGION="${{ env.AWS_REGION }}"
+          ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+          echo "registry=${ECR_REGISTRY}" >> $GITHUB_OUTPUT
+          echo "✅ ECR Registry: ${ECR_REGISTRY}"
+      
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+            docker login --username AWS --password-stdin ${{ steps.registry.outputs.registry }}
       
       - name: Build, tag, and push image to Amazon ECR
         id: image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.registry.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
           IMAGE_TAG: latest
         run: |
-          echo "Building and pushing image to: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "📦 Building image..."
+          echo "Registry: $ECR_REGISTRY"
+          echo "Repository: $ECR_REPOSITORY"
+          echo "Tag: $IMAGE_TAG"
           
-          # Also tag with latest commit SHA for tracking
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          FULL_IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          echo "🔨 Building: $FULL_IMAGE_URI"
+          
+          docker build -t $FULL_IMAGE_URI .
+          
+          echo "📤 Pushing to ECR..."
+          docker push $FULL_IMAGE_URI
+          
+          # Also tag with commit SHA
+          docker tag $FULL_IMAGE_URI $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "✅ Image built and pushed successfully"
+          echo "image=${FULL_IMAGE_URI}" >> $GITHUB_OUTPUT
+          echo "IMAGE_URI=${FULL_IMAGE_URI}" >> $GITHUB_ENV
       
       - name: Image pushed successfully
         run: |
