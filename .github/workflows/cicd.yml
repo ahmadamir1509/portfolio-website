@@ -99,10 +99,19 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ECR_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
-          IMAGE_URI: ${{ needs.build-and-push.outputs.image-uri }}
+          ECR_REGISTRY: ${{ needs.build-and-push.outputs.image-uri }}
         run: |
+          set -e
+          
+          # Verify IMAGE_URI from previous job
+          if [ -z "$ECR_REGISTRY" ]; then
+            echo "❌ ERROR: IMAGE_URI is empty!"
+            echo "Build-and-push outputs: ${{ needs.build-and-push.outputs.image-uri }}"
+            exit 1
+          fi
+          
+          echo "✅ Using image: $ECR_REGISTRY"
+          
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/ec2-key.pem
           chmod 600 ~/.ssh/ec2-key.pem
@@ -128,16 +137,24 @@ jobs:
           scp -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -r \
             /tmp/aws_config/. ec2-user@$INSTANCE_IP:~/.aws/
           
-          # Create deployment script with proper variable handling
+          # Create deployment script - pass IMAGE_URI directly
           cat > /tmp/deploy.sh << 'SCRIPT'
           #!/bin/bash
           set -e
+          
           IMAGE_URI="$1"
-          ECR_REGISTRY="${IMAGE_URI%%/*}"
+          
+          if [ -z "$IMAGE_URI" ]; then
+            echo "❌ ERROR: IMAGE_URI not provided!"
+            exit 1
+          fi
+          
+          # Extract ECR registry from IMAGE_URI
+          ECR_REGISTRY=$(echo "$IMAGE_URI" | cut -d'/' -f1)
           
           echo "🔐 Logging in to ECR at $ECR_REGISTRY..."
           aws ecr get-login-password --region us-east-1 | \
-            sudo docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>&1 | grep -v "WARNING"
+            sudo docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>&1 | grep -v "WARNING" || true
           
           echo "🛑 Stopping old container..."
           sudo docker stop portfolio-website 2>/dev/null || true
@@ -175,7 +192,7 @@ jobs:
             /tmp/deploy.sh ec2-user@$INSTANCE_IP:/tmp/deploy.sh
           
           ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP "/tmp/deploy.sh '$IMAGE_URI'"
+            ec2-user@$INSTANCE_IP "/tmp/deploy.sh '$ECR_REGISTRY'"
       
       - name: Verify deployment
         env:
