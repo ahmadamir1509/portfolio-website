@@ -120,20 +120,17 @@ jobs:
           INSTANCE_IP: 98.93.75.181
           SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ECR_REGISTRY: ${{ needs.build-and-push.outputs.image-uri }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
         run: |
           set -e
           
-          # Verify IMAGE_URI from previous job
-          if [ -z "$ECR_REGISTRY" ]; then
-            echo "❌ ERROR: IMAGE_URI is empty!"
-            echo "Build-and-push outputs: ${{ needs.build-and-push.outputs.image-uri }}"
-            exit 1
-          fi
+          # Construct IMAGE_URI directly (don't depend on build job output)
+          IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest"
           
-          echo "✅ Using image: $ECR_REGISTRY"
+          echo "✅ Deploying image: $IMAGE_URI"
           
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/ec2-key.pem
@@ -142,7 +139,7 @@ jobs:
           # Add EC2 to known hosts
           ssh-keyscan -H $INSTANCE_IP >> ~/.ssh/known_hosts 2>/dev/null || true
           
-          # Create AWS credentials file for transfer
+          # Create AWS credentials file
           mkdir -p /tmp/aws_config
           cat > /tmp/aws_config/credentials << 'AWSCREDS'
           [default]
@@ -160,20 +157,13 @@ jobs:
           scp -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -r \
             /tmp/aws_config/. ec2-user@$INSTANCE_IP:~/.aws/
           
-          # Create deployment script - pass IMAGE_URI directly
+          # Create and run deployment script
           cat > /tmp/deploy.sh << 'SCRIPT'
           #!/bin/bash
           set -e
           
           IMAGE_URI="$1"
-          
-          if [ -z "$IMAGE_URI" ]; then
-            echo "❌ ERROR: IMAGE_URI not provided!"
-            exit 1
-          fi
-          
-          # Extract ECR registry from IMAGE_URI
-          ECR_REGISTRY=$(echo "$IMAGE_URI" | cut -d'/' -f1)
+          ECR_REGISTRY="$2"
           
           echo "🔐 Logging in to ECR at $ECR_REGISTRY..."
           aws ecr get-login-password --region us-east-1 | \
@@ -214,8 +204,9 @@ jobs:
           scp -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no \
             /tmp/deploy.sh ec2-user@$INSTANCE_IP:/tmp/deploy.sh
           
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP "/tmp/deploy.sh '$ECR_REGISTRY'"
+            ec2-user@$INSTANCE_IP "/tmp/deploy.sh '$IMAGE_URI' '$ECR_REGISTRY'"
       
       - name: Verify deployment
         env:
