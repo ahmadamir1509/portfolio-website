@@ -1,4 +1,4 @@
-name: Deploy Website to EC2
+name: Deploy Website to EC2 with Docker
 
 on:
   push:
@@ -10,6 +10,9 @@ on:
 
 env:
   AWS_REGION: us-east-1
+  ECR_REPOSITORY: portfolio-website
+  IMAGE_TAG: latest
+  AWS_ACCOUNT_ID: 827739413634
 
 jobs:
   terraform-validate:
@@ -35,20 +38,69 @@ jobs:
       - name: Terraform Validate
         run: cd terraform && terraform validate
 
-  deploy:
-    name: Deploy Flask App to EC2
+  build-and-push:
+    name: Build and Push Docker Image to ECR
     runs-on: ubuntu-latest
     needs: terraform-validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      image-uri: ${{ steps.image.outputs.image }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: Build, tag, and push image to Amazon ECR
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: latest
+        run: |
+          echo "Building and pushing image to: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          # Also tag with latest commit SHA for tracking
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+      
+      - name: Image pushed successfully
+        run: |
+          echo "✅ Docker image built and pushed to ECR"
+          echo "📦 Image: ${{ steps.image.outputs.image }}"
+
+  deploy:
+    name: Deploy Docker Container to EC2
+    runs-on: ubuntu-latest
+    needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Deploy Flask app to EC2
+      - name: Deploy Docker container to EC2
         env:
           INSTANCE_IP: 98.93.75.181
           SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          IMAGE_URI: ${{ needs.build-and-push.outputs.image-uri }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/ec2-key.pem
@@ -57,34 +109,89 @@ jobs:
           # Add EC2 to known hosts
           ssh-keyscan -H $INSTANCE_IP >> ~/.ssh/known_hosts 2>/dev/null || true
           
-          # Pull latest code
+          # Create deployment script
+          cat > /tmp/deploy.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          export AWS_REGION=$1
+          export AWS_ACCESS_KEY_ID=$2
+          export AWS_SECRET_ACCESS_KEY=$3
+          export ECR_REPOSITORY=$4
+          export IMAGE_URI=$5
+          
+          echo "🔐 Logging in to ECR..."
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $(echo $IMAGE_URI | cut -d/ -f1)
+          
+          echo "🛑 Stopping old container..."
+          docker stop portfolio-website || true
+          docker rm portfolio-website || true
+          
+          echo "📥 Pulling latest image..."
+          docker pull $IMAGE_URI
+          
+          echo "🚀 Starting new container..."
+          docker run -d \
+            --name portfolio-website \
+            --restart always \
+            -p 5000:5000 \
+            -e FLASK_ENV=production \
+            -e PORT=5000 \
+            --health-cmd='curl -f http://localhost:5000/ || exit 1' \
+            --health-interval=30s \
+            --health-timeout=10s \
+            --health-retries=3 \
+            --health-start-period=5s \
+            $IMAGE_URI
+          
+          echo "⏳ Waiting for container to be healthy..."
+          sleep 5
+          
+          # Check if container is running
+          if docker ps | grep portfolio-website > /dev/null; then
+            echo "✅ Container is running successfully!"
+          else
+            echo "❌ Container failed to start"
+            docker logs portfolio-website
+            exit 1
+          fi
+          EOF
+          
+          chmod +x /tmp/deploy.sh
+          
+          # Copy deployment script to EC2
+          scp -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no \
+            /tmp/deploy.sh ec2-user@$INSTANCE_IP:/tmp/deploy.sh
+          
+          # Run deployment script on EC2
           ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP "cd /home/ec2-user/portfolio && git pull origin main" || exit 1
-          
-          # Kill old Flask process
-          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP "pkill -f 'python3 app.py' || true" || true
-          
-          # Wait for port to be free
-          sleep 3
-          
-          # Install dependencies
-          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP "pip3 install -r /home/ec2-user/portfolio/requirements.txt" || true
-          
-          # Start Flask app
-          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP "cd /home/ec2-user/portfolio && nohup python3 app.py > /tmp/flask.log 2>&1 &" || exit 1
-          
-          # Wait for Flask to start
-          sleep 3
-          
-          # Verify Flask is running
-          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            ec2-user@$INSTANCE_IP "ps aux | grep app.py | grep -v grep" || exit 1
+            ec2-user@$INSTANCE_IP "bash /tmp/deploy.sh '$AWS_REGION' '$AWS_ACCESS_KEY_ID' '$AWS_SECRET_ACCESS_KEY' '$ECR_REPOSITORY' '$IMAGE_URI'" || exit 1
       
-      - name: Print Website URL
+      - name: Verify deployment
+        env:
+          INSTANCE_IP: 98.93.75.181
+          SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
-          echo "✅ Flask app deployed successfully!"
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/ec2-key.pem
+          chmod 600 ~/.ssh/ec2-key.pem
+          
+          # Check website is responding
+          for i in {1..10}; do
+            if ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
+              ec2-user@$INSTANCE_IP "curl -f http://localhost:5000/ > /dev/null 2>&1"; then
+              echo "✅ Website is responding!"
+              break
+            fi
+            if [ $i -lt 10 ]; then
+              echo "⏳ Attempt $i/10 - waiting for website..."
+              sleep 2
+            fi
+          done
+      
+      - name: Deployment Complete
+        run: |
+          echo "✅ Docker container deployed successfully!"
           echo "🌐 Website URL: http://98.93.75.181:5000"
+          echo "📦 Container: portfolio-website"
 
