@@ -11,12 +11,16 @@ resource "aws_instance" "web" {
   user_data = base64encode(file("${path.module}/user_data.sh"))
 
   tags = {
-    Name = "portfolio-website"
+    Name = "portfolio-website-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
   }
 
   depends_on = [
     aws_iam_role_policy_attachment.ec2_s3_access
   ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Generate SSH private key
